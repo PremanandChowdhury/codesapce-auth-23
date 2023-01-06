@@ -3,6 +3,7 @@ const mongoose = require('mongoose')
 const { MONGODB_ATLAS_URI } = process.env
 
 exports.connect = () => {
+  mongoose.set("strictQuery", false);
   mongoose.connect(MONGODB_ATLAS_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
