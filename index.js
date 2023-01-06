@@ -1,1 +1,6 @@
-console.log(`Welcome To Github Codespaces`);
+import app from './app'
+const { PORT } = process.env
+
+app.listen( PORT, () => {
+  console.log(`Server is running on PORT ${PORT}`)
+})
