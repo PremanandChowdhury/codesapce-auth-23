@@ -4,6 +4,9 @@ require('./database/database').connect()
 const express = require('express')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser')
+
+const { JWT_SECRET } = process.env
 
 const User = require('./models/user')
 
@@ -11,6 +14,7 @@ const app = express()
 
 // Middleware
 app.use(express.json())
+app.use(cookieParser())
 
 // Routes
 app.get('/', (req, res) => {
@@ -36,10 +40,8 @@ app.post('/register', async (req, res) => {
     }
 
     // encrypt the password
-    const encryPassword = await bcrypt.hash(password, 10, (err, hash) => {
-      if(err){
-        console.log(`err`);
-      }
+    const encryPassword = bcrypt.hash(password, 10, (err, hash) => {
+      console.log(hash)
     })
 
     // save the user in db
@@ -52,10 +54,8 @@ app.post('/register', async (req, res) => {
 
     // generate the token for user and send it
     const token = jwt.sign(
-      {
-        id: user._id,
-        email
-      }, 'shhhh',
+      { id: user._id, email }, 
+      JWT_SECRET,
       { expiresIn: '2h' }
     )
 
@@ -64,6 +64,58 @@ app.post('/register', async (req, res) => {
     user.password = undefined             // to not send the password
 
     res.status(201).json(user)
+
+  } catch (error) {
+    console.log(error);
+  }
+})
+
+app.post('/login', async ( req, res ) => {
+
+  try {
+    // get all data from body
+    const {email, password} = await req.body
+
+    // Validation
+    if(!(email && password)) {
+      res.status(400).send(`Please send all the required fields`)
+    }
+
+    // check if user exists
+    const user = await User.findOne({email})
+
+    // user doesnot exists
+    if(!user) {
+      res.status(403).send(`Invalid login credentials`)
+    }
+
+    // match password
+    if(user && bcrypt.compare(password, user.password)) {
+
+      // Create token
+      const token = jwt.sign(
+        { id: user._id },
+        JWT_SECRET,
+        { expiresIn: '2h' }
+      )
+      user.token = token
+      user.password = undefined
+
+      // options for cookie
+      const options = {
+        expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 ),
+        httpOnly: true
+      }
+
+      // Send final response
+      res.status(200)
+         .cookie("token", token, options)
+         .json({
+            success: true,
+            token,
+            user
+          })
+    }
 
   } catch (error) {
     console.log(error);
