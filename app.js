@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser')
 const { JWT_SECRET } = process.env
 
 const User = require('./models/user')
+const auth = require('./middleware/auth')
 
 const app = express()
 
@@ -120,6 +121,10 @@ app.post('/login', async ( req, res ) => {
   } catch (error) {
     console.log(error);
   }
+})
+
+app.post('/dashboard', auth, (req, res) => {
+  res.send('<h1>Welcome to the Dashboard!</h1>')
 })
 
 module.exports = app
